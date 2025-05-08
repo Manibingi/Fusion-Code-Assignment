@@ -1,0 +1,50 @@
+[
+  {
+    "date": "2025-03-25",
+    "time": "8:00 AM - 4:00 PM",
+    "title": "Project Deadline - Charlie",
+    "creator": "Brine",
+    "icon": "🎵",
+    "day": 2
+  },
+  {
+    "date": "2025-03-25",
+    "time": "10:00 PM - 5:00 AM",
+    "title": "Project Deadline - Charlie",
+    "creator": "Brine",
+    "icon": "🏐",
+    "day": 2
+  },
+  {
+    "date": "2025-03-26",
+    "time": "6:00 AM - 7:00 AM",
+    "title": "Team Standup - Bob",
+    "creator": "Brine",
+    "icon": "🎵",
+    "day": 3
+  },
+  {
+    "date": "2025-03-27",
+    "time": "7:00 AM - 8:00 AM",
+    "title": "Lunch Break - Charlie",
+    "creator": "Brine",
+    "icon": "🎵",
+    "day": 4
+  },
+  {
+    "date": "2025-03-28",
+    "time": "8:00 AM - 10:00 AM",
+    "title": "Weekend Trip - Emma",
+    "creator": "Brine",
+    "icon": "🎵",
+    "day": 5
+  },
+  {
+    "date": "2025-05-09",
+    "time": "8:00 AM - 10:00 AM",
+    "title": "Weekend Trip - Emma",
+    "creator": "Brine",
+    "icon": "🎵",
+    "day": 6
+  }
+]
