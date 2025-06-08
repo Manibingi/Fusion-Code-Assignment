@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   startOfWeek,
   addDays,
@@ -6,45 +6,40 @@ import {
   isSameDay,
   addWeeks,
   subWeeks,
+  parseISO,
 } from "date-fns";
 import { useCalendar } from "../context/CalendarContext";
-import mockEvents from "../data/mockEvents.json";
+import EventModal from "./EventModal";
 
 const hours = Array.from({ length: 24 }, (_, i) => i); // 0 - 23
 
-// Helper to parse time range (e.g., "8:00 AM - 4:00 PM") into start/end Date objects
-function parseEvent(event) {
-  const [startTime, endTime] = event.time.split(" - ");
-  const dateStr = event.date;
-  const start = new Date(`${dateStr} ${startTime}`);
-  // If end time is earlier than start, assume it's next day (overnight event)
-  let end = new Date(`${dateStr} ${endTime}`);
-  if (end < start) {
-    end.setDate(end.getDate() + 1);
-  }
-  return {
-    ...event,
-    start,
-    end,
-    owner: event.creator,
-  };
-}
-
-const parsedEvents = mockEvents.map(parseEvent);
-
 const WeeklyView = () => {
-  const { selectedDate, setSelectedDate } = useCalendar();
+  const { selectedDate, setSelectedDate, events } = useCalendar();
+  const [showEventModal, setShowEventModal] = useState(false);
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const handlePrevWeek = () => setSelectedDate(subWeeks(selectedDate, 1));
   const handleNextWeek = () => setSelectedDate(addWeeks(selectedDate, 1));
 
-  const getEventsForSlot = (day, hour) =>
-    parsedEvents.filter((event) => {
-      const start = new Date(event.start);
-      return isSameDay(start, day) && start.getHours() === hour;
+  // Helper function to parse time string to hours and minutes
+  const parseTimeToMinutes = (timeStr) => {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours * 60 + minutes;
+  };
+
+  // Get events for a specific time slot
+  const getEventsForSlot = (day, hour) => {
+    return events.filter((event) => {
+      if (!isSameDay(parseISO(event.date), day)) return false;
+
+      const eventTime = parseTimeToMinutes(event.time);
+      const slotStart = hour * 60;
+      const slotEnd = (hour + 1) * 60;
+
+      return eventTime >= slotStart && eventTime < slotEnd;
     });
+  };
 
   return (
     <div className="p-6 bg-gradient-to-br from-orange-50 to-pink-50 rounded-3xl shadow-xl max-w-5xl mx-auto">
@@ -53,23 +48,13 @@ const WeeklyView = () => {
         <h2 className="text-4xl font-extrabold tracking-tight text-gray-800">
           Calendar
         </h2>
-        <button className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150">
+        <button
+          onClick={() => setShowEventModal(true)}
+          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150"
+        >
           + New event
         </button>
       </div>
-
-      {/* Tabs */}
-      {/* <div className="flex gap-4 mb-6 justify-center">
-        <button className="px-4 py-2 rounded-full font-semibold text-gray-500 hover:text-pink-600">
-          Daily
-        </button>
-        <button className="px-4 py-2 rounded-full font-semibold text-pink-600 bg-pink-100 shadow-sm">
-          Weekly
-        </button>
-        <button className="px-4 py-2 rounded-full font-semibold text-gray-500 hover:text-pink-600">
-          Monthly
-        </button>
-      </div> */}
 
       {/* Navigation */}
       <div className="flex justify-center items-center gap-6 mb-6">
@@ -115,29 +100,31 @@ const WeeklyView = () => {
         {hours.map((hour) => (
           <div
             key={hour}
-            className="grid grid-cols-8 border-b border-pink-50 text-sm h-16"
+            className="grid grid-cols-8 border-b border-pink-50 text-sm h-24"
           >
-            <div className="text-right pr-2 pt-3 border-r-2 border-pink-50 text-gray-400 font-semibold bg-pink-50">{`${
-              hour % 12 || 12
-            }${hour < 12 ? "AM" : "PM"}`}</div>
+            <div className="text-right pr-2 pt-3 border-r-2 border-pink-50 text-gray-400 font-semibold bg-pink-50">
+              {`${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`}
+            </div>
             {days.map((day) => (
               <div
                 key={day}
                 className="border-r-2 border-pink-50 relative px-1"
               >
-                {getEventsForSlot(day, hour).map((event, idx) => (
+                {getEventsForSlot(day, hour).map((event) => (
                   <div
-                    key={idx}
-                    className="absolute top-1 left-1 right-1 bg-gradient-to-r from-pink-100 to-orange-100 p-2 rounded-lg text-xs shadow-lg border border-pink-50 flex flex-col items-start gap-1 hover:scale-[1.03] transition-transform"
+                    key={event._id}
+                    className="absolute top-1 left-1 right-1 bg-gradient-to-r from-pink-100 to-orange-100 p-2 rounded-lg text-xs shadow-lg border border-pink-50 hover:scale-[1.03] transition-transform"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{event.icon}</span>
-                      <span className="truncate font-semibold text-gray-800">
-                        {event.title}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-gray-500">
-                      {event.owner}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-800 truncate">
+                          {event.title}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {event.location}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -146,6 +133,14 @@ const WeeklyView = () => {
           </div>
         ))}
       </div>
+
+      {/* Event Modal */}
+      {showEventModal && (
+        <EventModal
+          selectedDate={selectedDate}
+          onClose={() => setShowEventModal(false)}
+        />
+      )}
     </div>
   );
 };

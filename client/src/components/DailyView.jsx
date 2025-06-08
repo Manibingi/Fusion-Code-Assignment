@@ -1,40 +1,27 @@
-import React from "react";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import React, { useState } from "react";
+import { format, startOfWeek, addDays, isSameDay, parseISO } from "date-fns";
 import { useCalendar } from "../context/CalendarContext";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FaMusic } from "react-icons/fa";
 import { PiSparkleFill } from "react-icons/pi";
-import mockEvents from "../data/mockEvents.json";
-
-// Helper to parse time range (e.g., "8:00 AM - 4:00 PM") into start/end Date objects
-function parseEvent(event) {
-  const [startTime, endTime] = event.time.split(" - ");
-  const dateStr = event.date;
-  const start = new Date(`${dateStr} ${startTime}`);
-  // If end time is earlier than start, assume it's next day (overnight event)
-  let end = new Date(`${dateStr} ${endTime}`);
-  if (end < start) {
-    end.setDate(end.getDate() + 1);
-  }
-  return {
-    ...event,
-    start,
-    end,
-    createdBy: event.creator,
-  };
-}
-
-const parsedEvents = mockEvents.map(parseEvent);
+import EventModal from "./EventModal";
 
 const DailyView = () => {
-  const { selectedDate, setSelectedDate } = useCalendar();
+  const { selectedDate, setSelectedDate, events } = useCalendar();
+  const [showEventModal, setShowEventModal] = useState(false);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const dailyEvents = parsedEvents.filter((event) =>
-    isSameDay(new Date(event.start), selectedDate)
-  );
+  // Get events for the selected day
+  const dailyEvents = events
+    .filter((event) => isSameDay(parseISO(event.date), selectedDate))
+    .sort((a, b) => {
+      // Sort events by time
+      const timeA = a.time.split(":").map(Number);
+      const timeB = b.time.split(":").map(Number);
+      return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
+    });
 
   return (
     <div className="p-6 bg-gradient-to-br from-orange-50 to-pink-50 rounded-3xl shadow-xl max-w-5xl mx-auto">
@@ -43,7 +30,10 @@ const DailyView = () => {
         <h2 className="text-4xl font-extrabold tracking-tight text-gray-800">
           Calendar
         </h2>
-        <button className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150">
+        <button
+          onClick={() => setShowEventModal(true)}
+          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150"
+        >
           + New event
         </button>
       </div>
@@ -86,40 +76,76 @@ const DailyView = () => {
         ))}
       </div>
 
+      {/* Selected Date Header */}
+      <div className="mb-6">
+        <h3 className="text-2xl font-bold text-gray-700">
+          {format(selectedDate, "EEEE, MMMM d, yyyy")}
+        </h3>
+      </div>
+
       {/* Event Cards */}
-      <div className="space-y-6">
-        {dailyEvents.map((event, idx) => (
-          <div
-            key={idx}
-            className="bg-gradient-to-r from-pink-100 to-orange-100 p-6 rounded-2xl shadow-lg flex flex-col gap-2 relative border border-pink-50 hover:scale-[1.02] transition-transform"
-          >
-            {/* Three-dot menu */}
-            <div className="absolute top-4 right-4 text-gray-400 cursor-pointer">
-              <BsThreeDotsVertical size={22} />
+      <div className="space-y-4">
+        {dailyEvents.length > 0 ? (
+          dailyEvents.map((event) => (
+            <div
+              key={event._id}
+              className="bg-gradient-to-r from-pink-100 to-orange-100 p-6 rounded-2xl shadow-lg border border-pink-50 hover:scale-[1.02] transition-transform"
+            >
+              {/* Three-dot menu */}
+              <div className="absolute top-4 right-4 text-gray-400 cursor-pointer">
+                <BsThreeDotsVertical size={22} />
+              </div>
+
+              {/* Time and Icon */}
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">{event.icon}</span>
+                <div className="text-sm font-medium text-gray-600 bg-white px-3 py-1 rounded-full">
+                  {event.time}
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {event.title}
+              </h3>
+
+              {/* Location */}
+              {event.location && (
+                <div className="text-sm text-gray-600 mb-2">
+                  📍 {event.location}
+                </div>
+              )}
+
+              {/* Description */}
+              {event.description && (
+                <p className="text-gray-600 text-sm mb-3">
+                  {event.description}
+                </p>
+              )}
+
+              {/* Creator */}
+              <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                <PiSparkleFill className="text-yellow-400" />
+                <span>Created by {event.creator}</span>
+              </div>
             </div>
-            {/* Time */}
-            <div className="text-xs text-gray-500 font-medium">
-              {format(new Date(event.start), "p")} -{" "}
-              {format(new Date(event.end), "p")}
-            </div>
-            {/* Title with icon */}
-            <div className="flex items-center gap-3 text-lg font-semibold text-gray-800">
-              <span className="text-2xl">{event.icon}</span>
-              {event.title}
-            </div>
-            {/* Creator */}
-            <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-              <PiSparkleFill className="text-yellow-400" />
-              {event.createdBy}
-            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
+            <p className="text-gray-500 text-lg">
+              No events scheduled for this day
+            </p>
           </div>
-        ))}
-        {dailyEvents.length === 0 && (
-          <p className="text-base text-gray-400 text-center mt-10">
-            No events for this day.
-          </p>
         )}
       </div>
+
+      {/* Event Modal */}
+      {showEventModal && (
+        <EventModal
+          selectedDate={selectedDate}
+          onClose={() => setShowEventModal(false)}
+        />
+      )}
     </div>
   );
 };

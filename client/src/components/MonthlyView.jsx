@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   startOfMonth,
   endOfMonth,
@@ -12,30 +12,11 @@ import {
   subMonths,
 } from "date-fns";
 import { useCalendar } from "../context/CalendarContext";
-import mockEvents from "../data/mockEvents.json";
-
-// Helper to parse time range (e.g., "8:00 AM - 4:00 PM") into start/end Date objects
-function parseEvent(event) {
-  const [startTime, endTime] = event.time.split(" - ");
-  const dateStr = event.date;
-  const start = new Date(`${dateStr} ${startTime}`);
-  // If end time is earlier than start, assume it's next day (overnight event)
-  let end = new Date(`${dateStr} ${endTime}`);
-  if (end < start) {
-    end.setDate(end.getDate() + 1);
-  }
-  return {
-    ...event,
-    start,
-    end,
-    owner: event.creator,
-  };
-}
-
-const parsedEvents = mockEvents.map(parseEvent);
+import EventModal from "./EventModal";
 
 const MonthlyView = () => {
-  const { selectedDate, setSelectedDate } = useCalendar();
+  const { selectedDate, setSelectedDate, events } = useCalendar();
+  const [showEventModal, setShowEventModal] = useState(false);
 
   const monthStart = startOfMonth(selectedDate);
   const monthEnd = endOfMonth(monthStart);
@@ -48,7 +29,7 @@ const MonthlyView = () => {
   let day = startDate;
 
   const getEventsForDay = (day) =>
-    parsedEvents.filter((event) => isSameDay(new Date(event.start), day));
+    events.filter((event) => isSameDay(new Date(event.date), day));
 
   const handlePrevMonth = () => setSelectedDate(subMonths(selectedDate, 1));
   const handleNextMonth = () => setSelectedDate(addMonths(selectedDate, 1));
@@ -87,7 +68,7 @@ const MonthlyView = () => {
           <div className="flex justify-center gap-1 mt-1 flex-wrap min-h-[18px]">
             {dayEvents.slice(0, 3).map((event, idx) => (
               <span
-                key={idx}
+                key={event._id || idx}
                 title={event.title}
                 className="text-lg group-hover:scale-110 transition-transform duration-150"
               >
@@ -120,7 +101,10 @@ const MonthlyView = () => {
         <h2 className="text-4xl font-extrabold tracking-tight text-gray-800">
           Calendar
         </h2>
-        <button className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150">
+        <button
+          onClick={() => setShowEventModal(true)}
+          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-full shadow transition-all duration-150"
+        >
           + New event
         </button>
       </div>
@@ -155,6 +139,14 @@ const MonthlyView = () => {
 
       {/* Month Grid */}
       <div className="space-y-3">{rows}</div>
+
+      {/* Event Modal */}
+      {showEventModal && (
+        <EventModal
+          selectedDate={selectedDate}
+          onClose={() => setShowEventModal(false)}
+        />
+      )}
     </div>
   );
 };
