@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8000/api/events";
+// const API_URL = "http://localhost:8000/api/events";
+const API_URL = "https://fusion-code-assignment.onrender.com/api/events";
 
 // Create axios instance with default config
 const api = axios.create({
